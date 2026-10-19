@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "runs": [
+    {"id":"run-1","mission":"Deliver a foam cube","variant":"straight scoop","seconds":18,"success":true,"prediction":"The cube will stay centered.","observation":"Delivered; cube moved near the edge."},
+    {"id":"run-2","mission":"Deliver a foam cube","variant":"straight scoop","seconds":15,"success":false,"prediction":"Same setup will repeat.","observation":"Cube slid off during the turn."},
+    {"id":"run-3","mission":"Deliver a foam cube","variant":"side rails","seconds":20,"success":true,"prediction":"Rails will keep the cube in.","observation":"Delivered without sliding."},
+    {"id":"run-4","mission":"Deliver a foam cube","variant":"side rails","seconds":22,"success":true,"prediction":"Rails will repeat the result.","observation":"Delivered, but turn was slower."}
+  ]
+}
