@@ -8,7 +8,7 @@ from statistics import median
 
 
 def validate(data):
-    if not isinstance(data, dict) or data.get('schema_version') != 1:
+    if not isinstance(data, dict) or type(data.get('schema_version')) is not int or data['schema_version'] != 1:
         raise ValueError('Notebook must be an object with schema_version 1')
     runs = data.get('runs')
     if not isinstance(runs, list) or not runs:
@@ -26,8 +26,8 @@ def validate(data):
         if type(run.get('success')) is not bool:
             raise ValueError('Run %s success must be true or false' % index)
         seconds = run.get('seconds')
-        if type(seconds) not in (int, float) or not math.isfinite(seconds) or seconds <= 0:
-            raise ValueError('Run %s seconds must be a finite positive number' % index)
+        if type(seconds) not in (int, float) or not 0 < seconds <= 86400 or not math.isfinite(seconds):
+            raise ValueError('Run %s seconds must be a finite number greater than 0 and at most 86400 (24 hours)' % index)
     return runs
 
 

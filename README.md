@@ -15,7 +15,7 @@ python3 robo_replay.py example.json --json
 python3 -m unittest -v
 ```
 
-Copy `example.json` to a private folder outside this repository. Replace its fictional runs with your experiments. Every run needs a unique `id`, `mission`, `variant`, `prediction`, `observation`, positive finite `seconds`, and boolean `success`. Keep `schema_version` at 1. Set a consistent success criterion before testing. Record duration manually with your own stopwatch. Empty notebooks, duplicate IDs, invalid times, and missing fields produce an explanatory error and exit code 2.
+Copy `example.json` to a private folder outside this repository. Replace its fictional runs with your experiments. Every run needs a unique `id`, `mission`, `variant`, `prediction`, `observation`, positive finite `seconds` up to 86400 (24 hours), and boolean `success`. Keep `schema_version` at the integer 1 (not `true`, `1.0`, or a string). The 24-hour limit catches implausible practice durations and prevents numerical overflow in timing summaries. Set a consistent success criterion before testing. Record duration manually with your own stopwatch. Empty notebooks, duplicate IDs, invalid times, and missing fields produce an explanatory error and exit code 2.
 
 The tool only reads the notebook; it never rewrites it. Shell `>` overwrites an existing report, so choose a new filename when retaining history. Reports and JSON exports include your notes: review them before sharing. No real student information is included in the sample.
 

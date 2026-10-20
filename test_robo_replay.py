@@ -52,6 +52,39 @@ class NotebookTests(unittest.TestCase):
         self.assertNotIn('<script>', text)
         self.assertIn('\\| row', text)
 
+    def test_schema_version_requires_integer(self):
+        for version in (True, False, 1.0, '1', None, 2):
+            data = copy.deepcopy(EXAMPLE)
+            data['schema_version'] = version
+            with self.subTest(version=version), self.assertRaises(ValueError):
+                summarize(data)
+
+    def test_duration_limits_prevent_nonfinite_medians(self):
+        for seconds in (86400.1, 1e308, 10 ** 400):
+            data = copy.deepcopy(EXAMPLE)
+            data['runs'][0]['seconds'] = seconds
+            with self.subTest(seconds=seconds), self.assertRaisesRegex(ValueError, '86400'):
+                summarize(data)
+        data = copy.deepcopy(EXAMPLE)
+        for run in data['runs']:
+            run['seconds'] = 86400
+        self.assertTrue(all(g['median_seconds_all'] == 86400 for g in summarize(data)))
+        json.dumps(summarize(data), allow_nan=False)
+
+    def test_cli_rejects_huge_duration_without_traceback(self):
+        script = str(Path(__file__).with_name('robo_replay.py'))
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'practice.json'
+            data = copy.deepcopy(EXAMPLE)
+            data['runs'][0]['seconds'] = 10 ** 400
+            path.write_text(json.dumps(data))
+            run = subprocess.run([sys.executable, script, str(path), '--json'],
+                                 capture_output=True, text=True, timeout=10)
+            self.assertEqual(run.returncode, 2)
+            self.assertIn('86400', run.stderr)
+            self.assertNotIn('Traceback', run.stderr)
+            self.assertEqual(run.stdout, '')
+
     def test_cli_json_and_bad_input(self):
         script = str(Path(__file__).with_name('robo_replay.py'))
         with tempfile.TemporaryDirectory() as folder:
