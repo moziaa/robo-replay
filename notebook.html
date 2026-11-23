@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RoboReplay · Practice notebook</title>
+<style>
+:root{font-family:system-ui,sans-serif;color:#172b3a;background:#edf3f3}body{margin:0}main{max-width:1000px;margin:auto;padding:32px 20px}header{border-bottom:3px solid #14766c;padding-bottom:24px}h1{font-size:clamp(2rem,5vw,3.4rem);margin:8px 0}h2{margin-top:0}.eyebrow{color:#136359;font-weight:750;letter-spacing:.12em;font-size:.8rem}p{line-height:1.6}.layout{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:24px}section{background:white;padding:24px;border-radius:16px;border:1px solid #cadbd8}label{display:block;font-weight:650;margin:14px 0 6px}input,textarea,select,button{font:inherit;box-sizing:border-box}input,textarea,select{width:100%;padding:10px;border:1px solid #7b9490;border-radius:7px}textarea{min-height:80px}button{background:#136359;color:white;border:0;border-radius:7px;padding:12px 16px;cursor:pointer;margin:16px 8px 0 0}button:disabled{opacity:.5;cursor:default}button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #d38400;outline-offset:3px}.secondary{background:#e0eeeb;color:#173e36}article{border-top:1px solid #cadbd8;padding:16px 0;overflow-wrap:anywhere}article h3{margin:0 0 6px}article p{margin:8px 0}.muted{color:#526567;font-size:.9rem}#status{min-height:1.5em;font-weight:650}footer{padding-top:24px;color:#526567}@media(max-width:700px){.layout{grid-template-columns:1fr}main{padding:20px 12px}section{padding:18px}}@media print{form,button,#status{display:none}.layout{display:block}section{border:0}body{background:white}}
+</style>
+<main><header><div class="eyebrow">BUILD · TEST · LEARN</div><h1>RoboReplay</h1><p>Your robot’s next breakthrough starts with one good observation.</p><p class="muted">Generic practice missions · No account · Saved in this browser when storage is available</p></header>
+<p id="status" role="status" aria-live="polite"></p><div class="layout"><section><h2>Log an experiment</h2><p>Predict before the run. Change one thing, then record what happened.</p>
+<form id="entry"><label for="mission">Practice mission</label><input id="mission" required maxlength="200" placeholder="Deliver a foam cube">
+<label for="variant">Code or attachment version</label><input id="variant" required maxlength="200" placeholder="Scoop with side rails">
+<label for="prediction">What do you predict?</label><textarea id="prediction" required maxlength="2000"></textarea>
+<button type="button" id="timer">Start timer</button><output id="elapsed" aria-label="Elapsed seconds">0.0 s</output><label for="seconds">Run duration (seconds)</label><input id="seconds" type="number" required min="0.001" max="86400" step="any">
+<label for="success">Did it meet your success criterion?</label><select id="success"><option value="false">Not yet</option><option value="true">Yes</option></select>
+<label for="observation">What happened? What would you change?</label><textarea id="observation" required maxlength="2000"></textarea><button type="submit">Save run</button></form></section>
+<section><h2>Practice history <span id="count">0</span></h2><p class="muted">Keep real names out of notes. Export a backup before clearing browser data or changing devices.</p><button id="export" disabled>Export notebook JSON</button><label for="backup">Export preview (copy to notebook.json if download is unavailable)</label><textarea id="backup" readonly></textarea><div id="runs"><p>No runs yet. Try a mission and capture your first observation.</p></div></section></div>
+<footer>Use exported JSON with <code>python3 robo_replay.py notebook.json</code> to compare versions. No official season scoring or robot control. Import and route sketches are planned.</footer></main>
+<script>
+'use strict';
+const key='robo-replay-notebook-v1', $=id=>document.getElementById(id);
+let runs=[], writable=true;
+function message(text){$('status').textContent=text;}
+function validRun(r){return r&&['id','mission','variant','prediction','observation'].every(k=>typeof r[k]==='string'&&r[k].trim())&&typeof r.success==='boolean'&&typeof r.seconds==='number'&&Number.isFinite(r.seconds)&&r.seconds>0&&r.seconds<=86400;}
+try{const raw=localStorage.getItem(key);if(raw){const data=JSON.parse(raw);if(data.schema_version!==1||!Array.isArray(data.runs)||!data.runs.every(validRun)||new Set(data.runs.map(r=>r.id)).size!==data.runs.length)throw Error('Invalid saved notebook');runs=data.runs;}}
+catch(e){writable=false;message('Saved notebook could not be read. Existing storage will not be overwritten. New runs are temporary: export them before closing.');}
+let started=null, ticker=null;
+$('timer').addEventListener('click',()=>{if(started===null){started=performance.now();$('timer').textContent='Stop timer';ticker=setInterval(()=>{$('elapsed').textContent=((performance.now()-started)/1000).toFixed(1)+' s';},100);}else{const elapsed=(performance.now()-started)/1000;clearInterval(ticker);started=null;$('timer').textContent='Start timer';$('seconds').value=elapsed.toFixed(3);$('elapsed').textContent=elapsed.toFixed(1)+' s';message('Time recorded. Add your observation and save the run.');}});
+function render(){
+ $('backup').value=JSON.stringify({schema_version:1,runs},null,2);
+ $('count').textContent=String(runs.length);$('export').disabled=!runs.length;
+ $('runs').replaceChildren();
+ if(!runs.length){const p=document.createElement('p');p.textContent='No runs yet. Try a mission and capture your first observation.';$('runs').append(p);}
+ for(const r of [...runs].reverse()){
+  const card=document.createElement('article'),title=document.createElement('h3');title.textContent=r.mission+' · '+r.variant;card.append(title);
+  for(const text of [r.seconds+' seconds · '+(r.success?'Success':'Not yet'),'Prediction: '+r.prediction,'Observation: '+r.observation]){const p=document.createElement('p');p.textContent=text;card.append(p);}
+  $('runs').append(card);
+ }
+}
+$('entry').addEventListener('submit',e=>{
+ e.preventDefault();if(started!==null){message('Stop the timer before saving the run.');return;}const run={id:'run-'+Date.now()+'-'+Math.random().toString(36).slice(2),mission:$('mission').value.trim(),variant:$('variant').value.trim(),prediction:$('prediction').value.trim(),observation:$('observation').value.trim(),seconds:Number($('seconds').value),success:$('success').value==='true'};
+ if(!validRun(run)){message('Enter a mission, version, prediction, observation, and duration greater than zero (up to 86400 seconds).');return;}
+ runs.push(run);let saved=false;
+ if(writable)try{localStorage.setItem(key,JSON.stringify({schema_version:1,runs}));saved=true;}catch(e){writable=false;}
+ render();message(saved?'Run saved in this browser. Export a backup when you finish.':'Run added temporarily. Browser storage is unavailable: export before closing.');
+ $('prediction').value='';$('observation').value='';$('seconds').value='';$('success').value='false';$('prediction').focus();
+});
+$('export').addEventListener('click',()=>{const blob=new Blob([JSON.stringify({schema_version:1,runs},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='notebook.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);message('Notebook download requested. Keep the file as your backup.');});
+render();
+</script></html>
