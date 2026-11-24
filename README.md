@@ -40,3 +40,9 @@ Original project; MIT licensed. Keep improvements dependency-free and add regres
 Open `notebook.html` in your browser, or serve this directory with `python3 -m http.server 8765 --bind 127.0.0.1` and visit `http://127.0.0.1:8765/notebook.html`. Enter a mission, version, and prediction before running. Start/stop the timer (or enter seconds manually), record the outcome, then save. The timer measures elapsed time, including time spent in other tabs; it is not a hardware timing instrument.
 
 Runs stay in this browser when local storage is available. Export regularly: clearing browser data, changing the browser or origin, and private browsing can lose access to saved runs. Storage failures are shown explicitly. Existing unreadable storage is not overwritten. JSON includes notes: review before sharing. The export preview can be copied into `notebook.json` if downloads are unavailable. It uses the same schema as the Python CLI. No data is sent to a server, and no external assets or packages are used.
+
+### Compare in the browser
+
+The notebook shows success counts, success rates, and median times for each mission/version pair immediately after saving. Successful-attempt medians exclude failed attempts; a version with no successes says so explicitly. Match mission names and success criteria when comparing. Small samples do not establish that a design is better. No saved data is modified by these summaries.
+
+Run the browser comparison regression checks with `node test_notebook.cjs` (Node.js required for this check only).

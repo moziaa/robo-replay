@@ -12,6 +12,7 @@
 <label for="success">Did it meet your success criterion?</label><select id="success"><option value="false">Not yet</option><option value="true">Yes</option></select>
 <label for="observation">What happened? What would you change?</label><textarea id="observation" required maxlength="2000"></textarea><button type="submit">Save run</button></form></section>
 <section><h2>Practice history <span id="count">0</span></h2><p class="muted">Keep real names out of notes. Export a backup before clearing browser data or changing devices.</p><button id="export" disabled>Export notebook JSON</button><label for="backup">Export preview (copy to notebook.json if download is unavailable)</label><textarea id="backup" readonly></textarea><div id="runs"><p>No runs yet. Try a mission and capture your first observation.</p></div></section></div>
+<section style="margin-top:24px"><h2>Compare versions</h2><p class="muted">Compare only runs with the same mission and success criterion. Small samples are clues, not proof. A fast failed attempt is not a successful run.</p><div id="comparisons"></div></section>
 <footer>Use exported JSON with <code>python3 robo_replay.py notebook.json</code> to compare versions. No official season scoring or robot control. Import and route sketches are planned.</footer></main>
 <script>
 'use strict';
@@ -23,7 +24,26 @@ try{const raw=localStorage.getItem(key);if(raw){const data=JSON.parse(raw);if(da
 catch(e){writable=false;message('Saved notebook could not be read. Existing storage will not be overwritten. New runs are temporary: export them before closing.');}
 let started=null, ticker=null;
 $('timer').addEventListener('click',()=>{if(started===null){started=performance.now();$('timer').textContent='Stop timer';ticker=setInterval(()=>{$('elapsed').textContent=((performance.now()-started)/1000).toFixed(1)+' s';},100);}else{const elapsed=(performance.now()-started)/1000;clearInterval(ticker);started=null;$('timer').textContent='Start timer';$('seconds').value=elapsed.toFixed(3);$('elapsed').textContent=elapsed.toFixed(1)+' s';message('Time recorded. Add your observation and save the run.');}});
+// Comparison math is independent of the DOM and does not change saved runs.
+function summarizeRuns(items){
+ const groups=new Map();
+ for(const r of items){const key=JSON.stringify([r.mission,r.variant]);if(!groups.has(key))groups.set(key,{mission:r.mission,variant:r.variant,times:[],successful:[]});const g=groups.get(key);g.times.push(r.seconds);if(r.success)g.successful.push(r.seconds);}
+ const median=values=>{if(!values.length)return null;const a=[...values].sort((a,b)=>a-b),m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2;};
+ return [...groups.values()].map(g=>({mission:g.mission,variant:g.variant,attempts:g.times.length,successes:g.successful.length,median:median(g.times),successfulMedian:median(g.successful)}));
+}
+// End comparison math.
+function renderComparisons(){
+ const target=$('comparisons');target.replaceChildren();
+ if(!runs.length){const p=document.createElement('p');p.textContent='Save a run to see its version summary here.';target.append(p);return;}
+ for(const g of summarizeRuns(runs)){
+  const card=document.createElement('article'),title=document.createElement('h3');title.textContent=g.mission+' · '+g.variant;card.append(title);
+  const seconds=n=>n===null?'No successful runs':n.toFixed(3)+' s';
+  for(const text of [g.successes+' / '+g.attempts+' successful ('+(100*g.successes/g.attempts).toFixed(0)+'%)','Median, all attempts: '+seconds(g.median),'Median, successful attempts: '+seconds(g.successfulMedian)]){const p=document.createElement('p');p.textContent=text;card.append(p);}
+  target.append(card);
+ }
+}
 function render(){
+ renderComparisons();
  $('backup').value=JSON.stringify({schema_version:1,runs},null,2);
  $('count').textContent=String(runs.length);$('export').disabled=!runs.length;
  $('runs').replaceChildren();
