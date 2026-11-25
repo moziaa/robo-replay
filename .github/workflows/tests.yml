@@ -23,3 +23,15 @@ jobs:
         run: python robo_replay.py example.json
       - name: Check JSON example
         run: python robo_replay.py example.json --json
+  notebook:
+    name: Notebook comparison regression checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Report runner Node.js version
+        run: node --version
+      - name: Test notebook comparison math
+        run: node test_notebook.cjs
